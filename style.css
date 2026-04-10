@@ -1,0 +1,153 @@
+body {
+  font-family: Arial;
+  margin: 0;
+  background: #f4f6f9;
+  color: #222;
+}
+
+/* AUTH */
+#auth {
+  max-width: 350px;
+  margin: 80px auto;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  margin: 8px 0;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+button {
+  padding: 10px;
+  margin-top: 8px;
+  width: 100%;
+  border: none;
+  border-radius: 8px;
+  background: #2d6cdf;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #1f55b3;
+}
+
+/* APP LAYOUT */
+#app {
+  padding: 15px;
+}
+
+/* FOOD GRID */
+#food-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.food-card {
+  background: white;
+  padding: 10px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  text-align: center;
+}
+
+/* CART */
+#cart {
+  background: white;
+  padding: 10px;
+  margin-top: 15px;
+  border-radius: 10px;
+}
+
+/* ADMIN */
+#admin {
+  background: white;
+  padding: 10px;
+  margin-top: 15px;
+  border-radius: 10px;
+}
+
+/* SETTINGS */
+#settings {
+  background: white;
+  padding: 15px;
+  margin-top: 15px;
+  border-radius: 10px;
+}
+
+/* DARK MODE */
+body.dark {
+  background: #111;
+  color: white;
+}
+
+body.dark #auth,
+body.dark #admin,
+body.dark #cart,
+body.dark #settings,
+body.dark .food-card {
+  background: #222;
+  color: white;
+}	
+
+body {
+  font-family: Arial, sans-serif;
+}
+
+/* FOOD CARD (your original style feel) */
+.food-card {
+  background: white;
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+/* BUTTON (restore simple clean look you had) */
+button {
+  padding: 8px;
+  border: none;
+  border-radius: 6px;
+  background: #2d6cdf;
+  color: white;
+}
+
+/* CART */
+#cart-box {
+  background: white;
+  padding: 10px;
+  margin-top: 15px;
+  border-radius: 10px;
+}
+
+/* ADMIN PANEL */
+#admin-panel {
+  background: white;
+  padding: 10px;
+  margin-top: 15px;
+  border-radius: 10px;
+}
+
+/* RECEIPT */
+#receipt-box {
+  border-radius: 10px;
+}
+
+/* CHECKOUT BUTTON */
+.checkout {
+  background: green;
+  color: white;
+  padding: 12px;
+  text-align: center;
+  margin-top: 10px;
+  border-radius: 10px;
+}

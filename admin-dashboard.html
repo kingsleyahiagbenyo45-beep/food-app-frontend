@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<h1>📊 Admin Dashboard</h1>
+
+<!-- ORDERS -->
+<div class="card">
+  <h2>📦 Orders</h2>
+  <div id="orders">Loading orders...</div>
+</div>
+
+<!-- USERS -->
+<div class="card">
+  <h2>👤 Registered Users</h2>
+  <div id="users">Loading users...</div>
+</div>
+
+<script>
+const API = "http://10.194.15.54:3000";
+
+/* ================= ORDERS ================= */
+async function loadOrders() {
+  try {
+    const res = await fetch(API + "/api/orders");
+    const data = await res.json();
+
+    const box = document.getElementById("orders");
+    box.innerHTML = "";
+
+    if (data.length === 0) {
+      box.innerHTML = "No orders yet";
+      return;
+    }
+
+    data.forEach(o => {
+      box.innerHTML += `
+        <div class="card">
+          <b>👤 ${o.customerName}</b><br>
+          📍 ${o.location}<br>
+          💳 ${o.paymentMethod}<br>
+          💰 ₵${o.total}<br>
+          🍔 ${o.items.map(i => i.name).join(", ")}
+        </div>
+      `;
+    });
+
+  } catch (err) {
+    console.log("Orders error:", err);
+  }
+}
+
+/* ================= USERS ================= */
+async function loadUsers() {
+  try {
+    const res = await fetch(API + "/api/users");
+    const data = await res.json();
+
+    const box = document.getElementById("users");
+    box.innerHTML = "";
+
+    if (data.length === 0) {
+      box.innerHTML = "No users yet";
+      return;
+    }
+
+    data.forEach(u => {
+      box.innerHTML += `
+        <div class="card">
+          👤 <b>${u.username}</b><br>
+          🛡 Role: ${u.role}
+        </div>
+      `;
+    });
+
+  } catch (err) {
+    console.log("Users error:", err);
+  }
+}
+
+/* ================= INIT ================= */
+function loadAll() {
+  loadOrders();
+  loadUsers();
+}
+
+loadAll();
+
+/* AUTO REFRESH (LIVE ADMIN PANEL) */
+setInterval(loadAll, 3000);
+</script>
+
+</body>
+</html>

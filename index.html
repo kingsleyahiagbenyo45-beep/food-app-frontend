@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Food App</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<!-- AUTH -->
+<div id="auth">
+
+  <h2>Login / Signup</h2>
+
+  <input id="email" placeholder="Email">
+  <input id="password" type="password" placeholder="Password">
+
+  <button onclick="signup()">Sign Up</button>
+  <button onclick="login()">Login</button>
+
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none;">
+
+  <h1>🍔 Food App</h1>
+
+  <button onclick="openSettings()">⚙ Settings</button>
+
+  <div id="food-container"></div>
+
+  <div id="cart"></div>
+
+  <button onclick="checkout()">Checkout</button>
+
+  <button id="adminBtn" onclick="toggleAdmin()" style="display:none;">
+    Admin
+  </button>
+
+  <div id="admin" style="display:none;">
+    <h3>Orders</h3>
+    <div id="orders"></div>
+
+    <h3>Users</h3>
+    <div id="users"></div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="settings" style="display:none;">
+    <h3>Settings</h3>
+
+    <button onclick="logout()">Logout</button>
+    <button onclick="toggleTheme()">Theme</button>
+
+    <input id="oldPass" placeholder="Old password">
+    <input id="newPass" placeholder="New password">
+    <button onclick="changePassword()">Change Password</button>
+
+    <button onclick="forgotPassword()">Forgot Password</button>
+  </div>
+
+</div>
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script src="script.js"></script>
+
+</body>
+</html>
