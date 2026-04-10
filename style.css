@@ -151,3 +151,19 @@ button {
   margin-top: 10px;
   border-radius: 10px;
 }
+
+body.dark {
+  background: #121212;
+  color: white;
+}
+
+body.dark button {
+  background: #333;
+  color: white;
+}
+
+body.dark input {
+  background: #222;
+  color: white;
+  border: 1px solid #555;
+}

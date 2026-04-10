@@ -242,3 +242,60 @@ window.onload = () => {
     loadOrders();
   }
 };
+
+// =========================
+// ⚙️ SETTINGS SYSTEM
+// =========================
+
+// LOGOUT
+function logout() {
+  localStorage.removeItem("user");
+  location.reload();
+}
+
+// THEME
+function toggleTheme() {
+  document.body.classList.toggle("dark");
+
+  if (document.body.classList.contains("dark")) {
+    localStorage.setItem("theme", "dark");
+  } else {
+    localStorage.setItem("theme", "light");
+  }
+}
+
+// LOAD THEME ON START
+window.addEventListener("load", () => {
+  const theme = localStorage.getItem("theme");
+
+  if (theme === "dark") {
+    document.body.classList.add("dark");
+  }
+});
+
+async function changePassword() {
+  const user = JSON.parse(localStorage.getItem("user"));
+
+  const oldPass = document.getElementById("oldPass").value;
+  const newPass = document.getElementById("newPass").value;
+
+  if (!oldPass || !newPass) {
+    alert("Fill all fields");
+    return;
+  }
+
+  const res = await fetch(`${API}/api/change-password`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      email: user.email,
+      oldPassword: oldPass,
+      newPassword: newPass
+    })
+  });
+
+  const data = await res.json();
+  alert(data.message);
+}	
