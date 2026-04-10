@@ -76,6 +76,7 @@ async function login() {
 
     loadFoods();
     loadOrders();
+    loadUsers();
   } catch (err) {
     console.log(err);
     alert("Login error");
@@ -207,21 +208,50 @@ function toggleAdmin() {
 }
 
 async function loadOrders() {
-  const res = await fetch(`${API}/api/orders`);
-  const data = await res.json();
+  try {
+    const res = await fetch(`${API}/api/orders`);
+    const orders = await res.json();
 
-  const box = document.getElementById("orders");
-  if (!box) return;
+    const box = document.getElementById("orders");
+    if (!box) return;
 
-  box.innerHTML = "";
+    box.innerHTML = "";
 
-  data.forEach(o => {
-    box.innerHTML += `
-      <div>
-        ${o.customerName} - ₵${o.total}
-      </div>
-    `;
-  });
+    orders.forEach(o => {
+      box.innerHTML += `
+        <div class="order-card">
+          <h4>${o.customerName}</h4>
+          <p>${o.location}</p>
+          <p>Total: ₵${o.total}</p>
+
+          <select onchange="updateOrder('${o._id}', this.value)">
+            <option value="pending">Pending</option>
+            <option value="processing">Processing</option>
+            <option value="delivered">Delivered</option>
+          </select>
+        </div>
+      `;
+    });
+
+  } catch (err) {
+    console.log("Orders load error:", err);
+  }
+}
+
+async function updateOrder(id, status) {
+  try {
+    await fetch(`${API}/api/order/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ status })
+    });
+
+    loadOrders(); // refresh
+  } catch (err) {
+    console.log("Update order error:", err);
+  }
 }
 
 // =========================
@@ -299,3 +329,32 @@ async function changePassword() {
   const data = await res.json();
   alert(data.message);
 }	
+
+
+// =========================
+// 👤 LOAD USERS (ADMIN)
+// =========================
+async function loadUsers() {
+  try {
+    const res = await fetch(`${API}/api/users`);
+    const users = await res.json();
+
+    const box = document.getElementById("users");
+    if (!box) return;
+
+    box.innerHTML = "";
+
+    users.forEach(u => {
+      box.innerHTML += `
+        <div class="user-card">
+          <p><b>Email:</b> ${u.email}</p>
+          <p><b>Role:</b> ${u.role}</p>
+          <p><b>ID:</b> ${u._id}</p>
+        </div>
+      `;
+    });
+
+  } catch (err) {
+    console.log("Users load error:", err);
+  }
+}
