@@ -1,27 +1,125 @@
 // =========================
-// 🌍 LIVE BACKEND URL
+// 🌍 LIVE BACKEND
 // =========================
 const API = "https://food-app-backend-mhfp.onrender.com";
 
 // =========================
-// 🍔 SOCKET CONNECTION
+// 🔐 AUTH SYSTEM
+// =========================
+async function signup() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  if (!email || !password) {
+    alert("Fill all fields");
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API}/api/signup`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data.message || "Signup failed");
+      return;
+    }
+
+    alert("Signup successful! Now login.");
+  } catch (err) {
+    console.log(err);
+    alert("Signup error");
+  }
+}
+
+async function login() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  if (!email || !password) {
+    alert("Fill all fields");
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API}/api/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data.message || "Login failed");
+      return;
+    }
+
+    localStorage.setItem("user", JSON.stringify(data));
+
+    alert("Login successful!");
+
+    document.getElementById("auth").style.display = "none";
+    document.getElementById("app").style.display = "block";
+
+    if (data.role === "admin") {
+      document.getElementById("adminBtn").style.display = "block";
+    }
+
+    loadFoods();
+    loadOrders();
+  } catch (err) {
+    console.log(err);
+    alert("Login error");
+  }
+}
+
+// =========================
+// 🔓 LOGOUT
+// =========================
+function logout() {
+  localStorage.removeItem("user");
+  location.reload();
+}
+
+// =========================
+// ⚙ SETTINGS
+// =========================
+function openSettings() {
+  const s = document.getElementById("settings");
+  s.style.display = s.style.display === "none" ? "block" : "none";
+}
+
+function toggleTheme() {
+  document.body.classList.toggle("dark");
+}
+
+function changePassword() {
+  alert("Feature coming soon");
+}
+
+function forgotPassword() {
+  alert("Feature coming soon");
+}
+
+// =========================
+// 🍔 SOCKET
 // =========================
 let socket;
 
 if (typeof io !== "undefined") {
   socket = io(API);
 
-  socket.on("connect", () => {
-    console.log("✅ Connected:", socket.id);
-  });
-
-  socket.on("newOrder", (order) => {
-    console.log("🔥 New order received:", order);
-    loadOrders(); // refresh admin orders
-  });
-
-  socket.on("disconnect", () => {
-    console.log("❌ Disconnected");
+  socket.on("newOrder", () => {
+    loadOrders();
   });
 }
 
@@ -29,135 +127,118 @@ if (typeof io !== "undefined") {
 // 🍔 LOAD FOODS
 // =========================
 async function loadFoods() {
-  try {
-    const res = await fetch(`${API}/api/foods`);
-    const foods = await res.json();
+  const res = await fetch(`${API}/api/foods`);
+  const foods = await res.json();
 
-    const box = document.getElementById("foodBox");
-    box.innerHTML = "";
+  const box = document.getElementById("food-container");
+  box.innerHTML = "";
 
-    foods.forEach((f) => {
-      box.innerHTML += `
-        <div class="food-card">
-          <h3>${f.name}</h3>
-          <p>₵${f.price}</p>
-          <button onclick="addToCart('${f._id}', '${f.name}', ${f.price})">
-            Add to Cart
-          </button>
-        </div>
-      `;
-    });
-  } catch (err) {
-    console.log("Error loading foods:", err);
-  }
+  foods.forEach(f => {
+    box.innerHTML += `
+      <div>
+        <h3>${f.name}</h3>
+        ₵${f.price}
+        <button onclick="addToCart('${f._id}','${f.name}',${f.price})">
+          Add
+        </button>
+      </div>
+    `;
+  });
 }
 
 // =========================
-// 🛒 CART SYSTEM
+// 🛒 CART
 // =========================
 let cart = [];
 
 function addToCart(id, name, price) {
   cart.push({ id, name, price });
-  updateCartUI();
+  renderCart();
 }
 
-function updateCartUI() {
-  const cartBox = document.getElementById("cartBox");
-  const totalBox = document.getElementById("totalBox");
-
-  cartBox.innerHTML = "";
-
+function renderCart() {
+  const box = document.getElementById("cart");
   let total = 0;
 
-  cart.forEach((item) => {
-    total += item.price;
+  box.innerHTML = "";
 
-    cartBox.innerHTML += `
-      <div>
-        ${item.name} - ₵${item.price}
-      </div>
-    `;
+  cart.forEach(item => {
+    total += item.price;
+    box.innerHTML += `<div>${item.name} ₵${item.price}</div>`;
   });
 
-  totalBox.innerText = `Total: ₵${total}`;
+  box.innerHTML += `<h3>Total: ₵${total}</h3>`;
 }
 
 // =========================
-// 🧾 CHECKOUT / ORDER
+// 🧾 CHECKOUT
 // =========================
 async function checkout() {
   const name = prompt("Enter name:");
-  if (!name || name.trim() === "") {
-    alert("Name is required");
-    return;
-  }
-
   const location = prompt("Enter location:");
-  if (!location || location.trim() === "") {
-    alert("Location is required");
-    return;
-  }
 
-  const paymentMethod = "Cash";
+  const total = cart.reduce((a, b) => a + b.price, 0);
 
-  const total = cart.reduce((sum, item) => sum + item.price, 0);
+  await fetch(`${API}/api/order`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      customerName: name,
+      location,
+      paymentMethod: "Cash",
+      items: cart,
+      total
+    })
+  });
 
-  const order = {
-    customerName: name,
-    location,
-    paymentMethod,
-    items: cart,
-    total
-  };
-
-  try {
-    const res = await fetch(`${API}/api/order`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(order)
-    });
-
-    const data = await res.json();
-
-    alert("Order placed successfully!");
-
-    cart = [];
-    updateCartUI();
-  } catch (err) {
-    console.log("Checkout error:", err);
-    alert("Order failed");
-  }
+  alert("Order sent");
+  cart = [];
+  renderCart();
 }
 
 // =========================
-// 📦 ADMIN LOAD ORDERS
+// 📦 ADMIN
 // =========================
+function toggleAdmin() {
+  const a = document.getElementById("admin");
+  a.style.display = a.style.display === "none" ? "block" : "none";
+}
+
 async function loadOrders() {
-  try {
-    const res = await fetch(`${API}/api/orders`);
-    const orders = await res.json();
+  const res = await fetch(`${API}/api/orders`);
+  const data = await res.json();
 
-    const adminBox = document.getElementById("adminBox");
-    if (!adminBox) return;
+  const box = document.getElementById("orders");
+  if (!box) return;
 
-    adminBox.innerHTML = "";
+  box.innerHTML = "";
 
-    orders.forEach((o) => {
-      adminBox.innerHTML += `
-        <div class="order-card">
-          <h4>${o.customerName}</h4>
-          <p>${o.location}</p>
-          <p>Total: ₵${o.total}</p>
-        </div>
-      `;
-    });
-  } catch (err) {
-    console.log("Admin load error:", err);
-  }
+  data.forEach(o => {
+    box.innerHTML += `
+      <div>
+        ${o.customerName} - ₵${o.total}
+      </div>
+    `;
+  });
 }
 
 // =========================
-// 🚀 INIT APP
+// 🚀 AUTO LOGIN
+// =========================
+window.onload = () => {
+  const user = JSON.parse(localStorage.getItem("user"));
+
+  if (user) {
+    document.getElementById("auth").style.display = "none";
+    document.getElementById("app").style.display = "block";
+
+    if (user.role === "admin") {
+      document.getElementById("adminBtn").style.display = "block";
+    }
+
+    loadFoods();
+    loadOrders();
+  }
+};
