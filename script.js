@@ -91,7 +91,9 @@ function enterApp() {
   const user = getUser();
   if (!user) return;
   document.getElementById("authScreen").classList.remove("active");
+  document.getElementById("authScreen").style.display = "none";
   document.getElementById("appScreen").classList.add("active");
+  document.getElementById("appScreen").style.display = "block";
   document.getElementById("userGreeting").textContent = `Welcome back, ${user.email.split("@")[0]} 👋`;
   document.getElementById("settingsEmail").textContent = user.email;
   document.getElementById("settingsRole").textContent  = user.role.toUpperCase();
