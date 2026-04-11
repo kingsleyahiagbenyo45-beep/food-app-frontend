@@ -1,50 +1,74 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Admin Login</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Login — ChopSpot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
 </head>
-
 <body>
-
-<div class="auth-container">
-  <div class="auth-card">
-
-    <h1>🧑‍💼 Admin Login</h1>
-
-    <input id="adminUser" placeholder="Username">
-    <input id="adminPass" type="password" placeholder="Password">
-
-    <button class="primary" onclick="adminLogin()">Login</button>
-
+  <div id="authScreen" class="screen active">
+    <div class="auth-bg">
+      <div class="auth-blob b1"></div>
+      <div class="auth-blob b2"></div>
+    </div>
+    <div class="auth-card">
+      <div class="auth-logo">
+        <span class="logo-icon">⚙️</span>
+        <h1>Admin Portal</h1>
+        <p>ChopSpot Management</p>
+      </div>
+      <input class="field" id="adminEmail" type="email" placeholder="Admin email"/>
+      <input class="field" id="adminPassword" type="password" placeholder="Password"/>
+      <button class="btn-primary full" onclick="adminLogin()">Login to Dashboard</button>
+      <a href="index.html" class="btn-ghost full" style="display:block;text-align:center;text-decoration:none;margin-top:8px;">← Back to App</a>
+      <div id="authMsg" class="auth-msg" style="display:none;"></div>
+    </div>
   </div>
-</div>
 
-<script>
-const API = "http://10.194.15.54:3000";
+  <script>
+    const API = "https://food-app-backend-mhfp.onrender.com";
 
-async function adminLogin() {
-  const username = document.getElementById("adminUser").value;
-  const password = document.getElementById("adminPass").value;
+    window.onload = () => {
+      const user = JSON.parse(localStorage.getItem("chopspot_user") || "null");
+      if (user?.role === "admin") {
+        window.location.href = "admin-dashboard.html";
+      }
+    };
 
-  const res = await fetch(API + "/api/admin-login", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({ username, password })
-  });
+    async function adminLogin() {
+      const email    = document.getElementById("adminEmail").value.trim();
+      const password = document.getElementById("adminPassword").value;
 
-  const data = await res.json();
+      if (!email || !password) { showMsg("Fill all fields", "error"); return; }
 
-  if (!res.ok) {
-    alert("Invalid admin login");
-    return;
-  }
+      try {
+        const res  = await fetch(`${API}/api/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
 
-  alert("Welcome Admin ✔");
+        if (!res.ok)              { showMsg(data.message || "Login failed", "error"); return; }
+        if (data.role !== "admin") { showMsg("Admin access required", "error"); return; }
 
-  window.location.href = "admin-dashboard.html";
-}
-</script>
+        localStorage.setItem("chopspot_user",  JSON.stringify(data));
+        localStorage.setItem("chopspot_token", data.token);
+        window.location.href = "admin-dashboard.html";
+      } catch (err) {
+        showMsg("Connection error", "error");
+      }
+    }
 
+    function showMsg(text, type) {
+      const msg = document.getElementById("authMsg");
+      msg.textContent = text;
+      msg.className   = `auth-msg ${type}`;
+      msg.style.display = "block";
+    }
+  </script>
 </body>
 </html>

@@ -1,360 +1,385 @@
-// =========================
-// 🌍 LIVE BACKEND
-// =========================
 const API = "https://food-app-backend-mhfp.onrender.com";
 
-// =========================
-// 🔐 AUTH SYSTEM
-// =========================
+function getToken() { return localStorage.getItem("chopspot_token"); }
+function getUser()  { return JSON.parse(localStorage.getItem("chopspot_user") || "null"); }
+function authHeaders() {
+  return { "Content-Type": "application/json", "Authorization": `Bearer ${getToken()}` };
+}
+
+function showToast(msg, type = "success") {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove("show"), 3500);
+}
+
+function switchTab(tab) {
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  document.querySelector(`[onclick="switchTab('${tab}')"]`).classList.add("active");
+  document.getElementById("loginForm").style.display  = tab === "login"  ? "block" : "none";
+  document.getElementById("signupForm").style.display = tab === "signup" ? "block" : "none";
+  document.getElementById("forgotForm").style.display = "none";
+  clearAuthMsg();
+}
+
+function showForgot() {
+  document.getElementById("loginForm").style.display  = "none";
+  document.getElementById("signupForm").style.display = "none";
+  document.getElementById("forgotForm").style.display = "block";
+}
+function showLogin() { switchTab("login"); }
+
+function showAuthMsg(msg, type = "error") {
+  const el = document.getElementById("authMsg");
+  el.textContent = msg;
+  el.className = `auth-msg ${type}`;
+  el.style.display = "block";
+}
+function clearAuthMsg() {
+  const el = document.getElementById("authMsg");
+  if (el) el.style.display = "none";
+}
+
 async function signup() {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-
-  if (!email || !password) {
-    alert("Fill all fields");
-    return;
-  }
-
+  const email    = document.getElementById("signupEmail").value.trim();
+  const password = document.getElementById("signupPassword").value;
+  if (!email || !password) { showAuthMsg("Fill all fields"); return; }
   try {
-    const res = await fetch(`${API}/api/signup`, {
+    const res  = await fetch(`${API}/api/signup`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password })
     });
-
     const data = await res.json();
-
-    if (!res.ok) {
-      alert(data.message || "Signup failed");
-      return;
-    }
-
-    alert("Signup successful! Now login.");
+    if (!res.ok) { showAuthMsg(data.message || "Signup failed"); return; }
+    localStorage.setItem("chopspot_user",  JSON.stringify(data));
+    localStorage.setItem("chopspot_token", data.token);
+    showAuthMsg("Account created! Welcome 🎉", "success");
+    setTimeout(enterApp, 800);
   } catch (err) {
-    console.log(err);
-    alert("Signup error");
+    showAuthMsg("Connection error");
   }
 }
 
 async function login() {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-
-  if (!email || !password) {
-    alert("Fill all fields");
-    return;
-  }
-
+  const email    = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value;
+  if (!email || !password) { showAuthMsg("Fill all fields"); return; }
   try {
-    const res = await fetch(`${API}/api/login`, {
+    const res  = await fetch(`${API}/api/login`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password })
     });
-
     const data = await res.json();
-
-    if (!res.ok) {
-      alert(data.message || "Login failed");
-      return;
-    }
-
-    localStorage.setItem("user", JSON.stringify(data));
-
-    alert("Login successful!");
-
-    document.getElementById("auth").style.display = "none";
-    document.getElementById("app").style.display = "block";
-
-    if (data.role === "admin") {
-      document.getElementById("adminBtn").style.display = "block";
-    }
-
-    loadFoods();
-    loadOrders();
-    loadUsers();
+    if (!res.ok) { showAuthMsg(data.message || "Login failed"); return; }
+    localStorage.setItem("chopspot_user",  JSON.stringify(data));
+    localStorage.setItem("chopspot_token", data.token);
+    enterApp();
   } catch (err) {
-    console.log(err);
-    alert("Login error");
+    showAuthMsg("Connection error");
   }
 }
 
-// =========================
-// 🔓 LOGOUT
-// =========================
 function logout() {
-  localStorage.removeItem("user");
+  localStorage.removeItem("chopspot_user");
+  localStorage.removeItem("chopspot_token");
   location.reload();
 }
 
-// =========================
-// ⚙ SETTINGS
-// =========================
-function openSettings() {
-  const s = document.getElementById("settings");
-  s.style.display = s.style.display === "none" ? "block" : "none";
+function enterApp() {
+  const user = getUser();
+  if (!user) return;
+  document.getElementById("authScreen").classList.remove("active");
+  document.getElementById("appScreen").classList.add("active");
+  document.getElementById("userGreeting").textContent = `Welcome back, ${user.email.split("@")[0]} 👋`;
+  document.getElementById("settingsEmail").textContent = user.email;
+  document.getElementById("settingsRole").textContent  = user.role.toUpperCase();
+  if (user.role === "admin") {
+    document.getElementById("adminNavBtn").style.display = "flex";
+  }
+  loadFoods();
+  initSocket();
 }
 
-function toggleTheme() {
-  document.body.classList.toggle("dark");
-}
+window.onload = () => {
+  const theme = localStorage.getItem("chopspot_theme");
+  if (theme === "dark") document.body.classList.add("dark");
+  const user = getUser();
+  if (user && getToken()) enterApp();
+};
 
-function changePassword() {
-  alert("Feature coming soon");
-}
-
-function forgotPassword() {
-  alert("Feature coming soon");
-}
-
-// =========================
-// 🍔 SOCKET
-// =========================
-let socket;
-
-if (typeof io !== "undefined") {
-  socket = io(API);
-
-  socket.on("newOrder", () => {
-    loadOrders();
+function initSocket() {
+  if (typeof io === "undefined") return;
+  const socket = io(API);
+  socket.on("orderUpdated", (order) => {
+    showToast(`Order status: ${order.status.toUpperCase()} 📦`);
   });
 }
 
-// =========================
-// 🍔 LOAD FOODS
-// =========================
+let allFoods = [];
+let activeCategory = "All";
+
 async function loadFoods() {
-  const res = await fetch(`${API}/api/foods`);
-  const foods = await res.json();
-
-  const box = document.getElementById("food-container");
-  box.innerHTML = "";
-
-  foods.forEach(f => {
-    box.innerHTML += `
-      <div>
-        <h3>${f.name}</h3>
-        ₵${f.price}
-        <button onclick="addToCart('${f._id}','${f.name}',${f.price})">
-          Add
-        </button>
-      </div>
-    `;
-  });
+  try {
+    const res = await fetch(`${API}/api/foods`);
+    allFoods  = await res.json();
+    const cats = ["All", ...new Set(allFoods.map(f => f.category).filter(Boolean))];
+    const bar  = document.getElementById("categoryBar");
+    bar.innerHTML = cats.map(c =>
+      `<button class="cat-btn ${c === activeCategory ? "active" : ""}" onclick="filterCategory('${c}')">${c}</button>`
+    ).join("");
+    renderFoods(allFoods);
+  } catch (err) {
+    console.log("Foods error:", err);
+  }
 }
 
-// =========================
-// 🛒 CART
-// =========================
+function filterCategory(cat) {
+  activeCategory = cat;
+  document.querySelectorAll(".cat-btn").forEach(b => {
+    b.classList.toggle("active", b.textContent === cat);
+  });
+  const filtered = cat === "All" ? allFoods : allFoods.filter(f => f.category === cat);
+  renderFoods(filtered);
+}
+
+function renderFoods(foods) {
+  const grid = document.getElementById("foodGrid");
+  if (!foods.length) { grid.innerHTML = `<p class="empty-txt">No items available</p>`; return; }
+  grid.innerHTML = foods.map(f => `
+    <div class="food-card ${!f.inStock ? "out-of-stock" : ""}">
+      <div class="food-img">${f.image ? `<img src="${f.image}" alt="${f.name}"/>` : "🍽️"}</div>
+      <div class="food-info">
+        <div class="food-cat">${f.category || ""}</div>
+        <h4 class="food-name">${f.name}</h4>
+        <p class="food-desc">${f.description || ""}</p>
+        <div class="food-bottom">
+          <span class="food-price">₵${f.price}</span>
+          ${f.inStock
+            ? `<button class="add-btn" onclick="addToCart('${f._id}','${f.name}',${f.price})">+ Add</button>`
+            : `<span class="out-label">Out of stock</span>`
+          }
+        </div>
+      </div>
+    </div>
+  `).join("");
+}
+
 let cart = [];
 
 function addToCart(id, name, price) {
-  cart.push({ id, name, price });
-  renderCart();
+  const existing = cart.find(i => i.id === id);
+  if (existing) existing.qty++;
+  else cart.push({ id, name, price, qty: 1 });
+  updateCartBadge();
+  showToast(`${name} added to cart 🛒`);
 }
 
-function renderCart() {
-  const box = document.getElementById("cart");
-  let total = 0;
-
-  box.innerHTML = "";
-
-  cart.forEach(item => {
-    total += item.price;
-    box.innerHTML += `<div>${item.name} ₵${item.price}</div>`;
-  });
-
-  box.innerHTML += `<h3>Total: ₵${total}</h3>`;
+function updateCartBadge() {
+  const badge = document.getElementById("cartBadge");
+  const total = cart.reduce((s, i) => s + i.qty, 0);
+  badge.textContent = total;
+  badge.style.display = total > 0 ? "flex" : "none";
 }
 
-// =========================
-// 🧾 CHECKOUT
-// =========================
-async function checkout() {
-  const name = prompt("Enter name:");
-  const location = prompt("Enter location:");
-
-  const total = cart.reduce((a, b) => a + b.price, 0);
-
-  await fetch(`${API}/api/order`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      customerName: name,
-      location,
-      paymentMethod: "Cash",
-      items: cart,
-      total
-    })
-  });
-
-  alert("Order sent");
-  cart = [];
-  renderCart();
+function removeFromCart(id) {
+  cart = cart.filter(i => i.id !== id);
+  updateCartBadge();
+  renderCartDrawer();
 }
 
-// =========================
-// 📦 ADMIN
-// =========================
-function toggleAdmin() {
-  const a = document.getElementById("admin");
-  a.style.display = a.style.display === "none" ? "block" : "none";
+function changeQty(id, delta) {
+  const item = cart.find(i => i.id === id);
+  if (!item) return;
+  item.qty += delta;
+  if (item.qty <= 0) removeFromCart(id);
+  else { updateCartBadge(); renderCartDrawer(); }
 }
 
-async function loadOrders() {
-  try {
-    const res = await fetch(`${API}/api/orders`);
-    const orders = await res.json();
-
-    const box = document.getElementById("orders");
-    if (!box) return;
-
-    box.innerHTML = "";
-
-    orders.forEach(o => {
-      box.innerHTML += `
-        <div class="order-card">
-          <h4>${o.customerName}</h4>
-          <p>${o.location}</p>
-          <p>Total: ₵${o.total}</p>
-
-          <select onchange="updateOrder('${o._id}', this.value)">
-            <option value="pending">Pending</option>
-            <option value="processing">Processing</option>
-            <option value="delivered">Delivered</option>
-          </select>
-        </div>
-      `;
-    });
-
-  } catch (err) {
-    console.log("Orders load error:", err);
-  }
+function openCart() {
+  renderCartDrawer();
+  document.getElementById("cartDrawer").classList.add("open");
+  document.getElementById("cartOverlay").classList.add("active");
+}
+function closeCart() {
+  document.getElementById("cartDrawer").classList.remove("open");
+  document.getElementById("cartOverlay").classList.remove("active");
 }
 
-async function updateOrder(id, status) {
-  try {
-    await fetch(`${API}/api/order/${id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ status })
-    });
-
-    loadOrders(); // refresh
-  } catch (err) {
-    console.log("Update order error:", err);
-  }
-}
-
-// =========================
-// 🚀 AUTO LOGIN
-// =========================
-window.onload = () => {
-  const user = JSON.parse(localStorage.getItem("user"));
-
-  if (user) {
-    document.getElementById("auth").style.display = "none";
-    document.getElementById("app").style.display = "block";
-
-    if (user.role === "admin") {
-      document.getElementById("adminBtn").style.display = "block";
-    }
-
-    loadFoods();
-    loadOrders();
-  }
-};
-
-// =========================
-// ⚙️ SETTINGS SYSTEM
-// =========================
-
-// LOGOUT
-function logout() {
-  localStorage.removeItem("user");
-  location.reload();
-}
-
-// THEME
-function toggleTheme() {
-  document.body.classList.toggle("dark");
-
-  if (document.body.classList.contains("dark")) {
-    localStorage.setItem("theme", "dark");
-  } else {
-    localStorage.setItem("theme", "light");
-  }
-}
-
-// LOAD THEME ON START
-window.addEventListener("load", () => {
-  const theme = localStorage.getItem("theme");
-
-  if (theme === "dark") {
-    document.body.classList.add("dark");
-  }
-});
-
-async function changePassword() {
-  const user = JSON.parse(localStorage.getItem("user"));
-
-  const oldPass = document.getElementById("oldPass").value;
-  const newPass = document.getElementById("newPass").value;
-
-  if (!oldPass || !newPass) {
-    alert("Fill all fields");
+function renderCartDrawer() {
+  const itemsEl  = document.getElementById("cartItems");
+  const footerEl = document.getElementById("cartFooter");
+  const emptyEl  = document.getElementById("emptyCart");
+  if (!cart.length) {
+    itemsEl.innerHTML = "";
+    footerEl.style.display = "none";
+    emptyEl.style.display  = "flex";
     return;
   }
-
-  const res = await fetch(`${API}/api/change-password`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      email: user.email,
-      oldPassword: oldPass,
-      newPassword: newPass
-    })
-  });
-
-  const data = await res.json();
-  alert(data.message);
-}	
-
-
-// =========================
-// 👤 LOAD USERS (ADMIN)
-// =========================
-async function loadUsers() {
-  try {
-    const res = await fetch(`${API}/api/users`);
-    const users = await res.json();
-
-    const box = document.getElementById("users");
-    if (!box) return;
-
-    box.innerHTML = "";
-
-    users.forEach(u => {
-      box.innerHTML += `
-        <div class="user-card">
-          <p><b>Email:</b> ${u.email}</p>
-          <p><b>Role:</b> ${u.role}</p>
-          <p><b>ID:</b> ${u._id}</p>
+  emptyEl.style.display  = "none";
+  footerEl.style.display = "block";
+  let total = 0;
+  itemsEl.innerHTML = cart.map(item => {
+    const sub = item.price * item.qty;
+    total += sub;
+    return `
+      <div class="cart-item">
+        <div class="cart-item-info">
+          <p class="cart-item-name">${item.name}</p>
+          <p class="cart-item-price">₵${item.price} each</p>
         </div>
-      `;
-    });
+        <div class="cart-item-qty">
+          <button onclick="changeQty('${item.id}',-1)">−</button>
+          <span>${item.qty}</span>
+          <button onclick="changeQty('${item.id}',1)">+</button>
+        </div>
+        <div class="cart-item-sub">₵${sub}</div>
+        <button class="remove-btn" onclick="removeFromCart('${item.id}')">✕</button>
+      </div>
+    `;
+  }).join("");
+  document.getElementById("cartTotal").textContent = `₵${total}`;
+}
 
+let selectedPayment = "Cash";
+
+function selectPayment(btn, method) {
+  selectedPayment = method;
+  document.querySelectorAll(".pay-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+}
+
+function openCheckout() {
+  closeCart();
+  renderCheckoutSummary();
+  const user = getUser();
+  if (user) document.getElementById("checkoutEmail").value = user.email;
+  document.getElementById("checkoutModal").classList.add("open");
+  document.getElementById("checkoutOverlay").classList.add("active");
+}
+function closeCheckout() {
+  document.getElementById("checkoutModal").classList.remove("open");
+  document.getElementById("checkoutOverlay").classList.remove("active");
+}
+
+function renderCheckoutSummary() {
+  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  document.getElementById("checkoutSummary").innerHTML = `
+    <div class="summary-items">
+      ${cart.map(i => `<div class="summary-row"><span>${i.name} × ${i.qty}</span><span>₵${i.price * i.qty}</span></div>`).join("")}
+    </div>
+    <div class="summary-total"><span>Total</span><span>₵${total}</span></div>
+  `;
+}
+
+async function placeOrder() {
+  const name     = document.getElementById("checkoutName").value.trim();
+  const location = document.getElementById("checkoutLocation").value.trim();
+  const email    = document.getElementById("checkoutEmail").value.trim();
+  if (!name || !location) { showToast("Fill name and address", "error"); return; }
+  if (!cart.length)       { showToast("Your cart is empty", "error"); return; }
+  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  try {
+    const res = await fetch(`${API}/api/order`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({
+        customerName: name,
+        customerEmail: email,
+        location,
+        paymentMethod: selectedPayment,
+        items: cart.flatMap(i => Array(i.qty).fill({ id: i.id, name: i.name, price: i.price })),
+        total
+      })
+    });
+    const order = await res.json();
+    if (!res.ok) { showToast(order.message || "Order failed", "error"); return; }
+    if (selectedPayment === "Paystack") {
+      await initPaystack(email || getUser()?.email, total, order._id);
+    } else {
+      showToast("Order placed! Check your email 📧", "success");
+      cart = [];
+      updateCartBadge();
+      closeCheckout();
+    }
   } catch (err) {
-    console.log("Users load error:", err);
+    showToast("Error placing order", "error");
   }
+}
+
+async function initPaystack(email, total, orderId) {
+  try {
+    const res  = await fetch(`${API}/api/paystack/initialize`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({ email, amount: total, orderId })
+    });
+    const data = await res.json();
+    if (data.authorization_url) {
+      cart = [];
+      updateCartBadge();
+      closeCheckout();
+      window.location.href = data.authorization_url;
+    } else {
+      showToast("Payment initialization failed", "error");
+    }
+  } catch (err) {
+    showToast("Payment error", "error");
+  }
+}
+
+function openSettings() {
+  document.getElementById("settingsDrawer").classList.add("open");
+  document.getElementById("settingsOverlay").classList.add("active");
+}
+function closeSettings() {
+  document.getElementById("settingsDrawer").classList.remove("open");
+  document.getElementById("settingsOverlay").classList.remove("active");
+}
+
+function toggleTheme() {
+  document.body.classList.toggle("dark");
+  localStorage.setItem("chopspot_theme", document.body.classList.contains("dark") ? "dark" : "light");
+}
+
+async function changePassword() {
+  const oldPass = document.getElementById("oldPass").value;
+  const newPass = document.getElementById("newPass").value;
+  if (!oldPass || !newPass) { showToast("Fill both fields", "error"); return; }
+  try {
+    const res  = await fetch(`${API}/api/change-password`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({ oldPassword: oldPass, newPassword: newPass })
+    });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.message || "Failed", "error"); return; }
+    showToast("Password updated ✅");
+    document.getElementById("oldPass").value = "";
+    document.getElementById("newPass").value = "";
+  } catch (err) {
+    showToast("Error updating password", "error");
+  }
+}
+
+async function forgotPassword() {
+  const email = document.getElementById("forgotEmail").value.trim();
+  if (!email) { showAuthMsg("Enter your email"); return; }
+  try {
+    const res  = await fetch(`${API}/api/forgot-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email })
+    });
+    const data = await res.json();
+    if (!res.ok) { showAuthMsg(data.message || "Failed"); return; }
+    showAuthMsg("Temporary password sent to your email ✅", "success");
+  } catch (err) {
+    showAuthMsg("Error sending email");
+  }
+}
+
+function goAdmin() {
+  window.location.href = "admin-dashboard.html";
 }

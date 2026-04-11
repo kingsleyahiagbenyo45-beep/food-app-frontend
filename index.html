@@ -1,68 +1,173 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Food App</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ChopSpot 🍔</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
 </head>
-
 <body>
 
-<!-- AUTH -->
-<div id="auth">
+<div id="authScreen" class="screen active">
+  <div class="auth-bg">
+    <div class="auth-blob b1"></div>
+    <div class="auth-blob b2"></div>
+    <div class="auth-blob b3"></div>
+  </div>
+  <div class="auth-card">
+    <div class="auth-logo">
+      <span class="logo-icon">🍔</span>
+      <h1>ChopSpot</h1>
+      <p>Real food. Real fast.</p>
+    </div>
 
-  <h2>Login / Signup</h2>
+    <div class="tab-toggle">
+      <button class="tab-btn active" onclick="switchTab('login')">Login</button>
+      <button class="tab-btn" onclick="switchTab('signup')">Sign Up</button>
+    </div>
 
-  <input id="email" placeholder="Email">
-  <input id="password" type="password" placeholder="Password">
+    <div id="loginForm">
+      <input class="field" id="loginEmail" type="email" placeholder="Email address"/>
+      <input class="field" id="loginPassword" type="password" placeholder="Password"/>
+      <button class="btn-primary full" onclick="login()">Login</button>
+      <button class="btn-ghost full" onclick="showForgot()">Forgot password?</button>
+    </div>
 
-  <button onclick="signup()">Sign Up</button>
-  <button onclick="login()">Login</button>
+    <div id="signupForm" style="display:none;">
+      <input class="field" id="signupEmail" type="email" placeholder="Email address"/>
+      <input class="field" id="signupPassword" type="password" placeholder="Password (min 6 chars)"/>
+      <button class="btn-primary full" onclick="signup()">Create Account</button>
+    </div>
+
+    <div id="forgotForm" style="display:none;">
+      <p class="hint">Enter your email and we'll send a temporary password.</p>
+      <input class="field" id="forgotEmail" type="email" placeholder="Email address"/>
+      <button class="btn-primary full" onclick="forgotPassword()">Send Reset Email</button>
+      <button class="btn-ghost full" onclick="showLogin()">← Back to Login</button>
+    </div>
+
+    <div id="authMsg" class="auth-msg" style="display:none;"></div>
+  </div>
+</div>
+
+<div id="appScreen" class="screen">
+
+  <nav class="topnav">
+    <div class="nav-left">
+      <span class="nav-logo">🍔 ChopSpot</span>
+    </div>
+    <div class="nav-right">
+      <button class="nav-icon-btn" onclick="openCart()" title="Cart">
+        🛒 <span id="cartBadge" class="badge" style="display:none;">0</span>
+      </button>
+      <button class="nav-icon-btn" id="adminNavBtn" onclick="goAdmin()" style="display:none;" title="Admin">⚙️</button>
+      <button class="nav-icon-btn" onclick="openSettings()" title="Settings">👤</button>
+    </div>
+  </nav>
+
+  <div class="hero">
+    <div class="hero-text">
+      <h2>What are you <br/><span class="accent">craving today?</span></h2>
+      <p id="userGreeting"></p>
+    </div>
+    <div class="hero-img">🍽️</div>
+  </div>
+
+  <div class="categories" id="categoryBar">
+    <button class="cat-btn active" onclick="filterCategory('All')">All</button>
+  </div>
+
+  <div class="section-title">Menu</div>
+  <div id="foodGrid" class="food-grid">
+    <div class="skeleton"></div>
+    <div class="skeleton"></div>
+    <div class="skeleton"></div>
+  </div>
+
+  <div id="toast" class="toast"></div>
 
 </div>
 
-<!-- APP -->
-<div id="app" style="display:none;">
-
-  <h1>🍔 Food App</h1>
-
-  <button onclick="openSettings()">⚙ Settings</button>
-
-  <div id="food-container"></div>
-
-  <div id="cart"></div>
-
-  <button onclick="checkout()">Checkout</button>
-
-  <button id="adminBtn" onclick="toggleAdmin()" style="display:none;">
-    Admin
-  </button>
-
-  <div id="admin" style="display:none;">
-    <h3>Orders</h3>
-    <div id="orders"></div>
-
-    <h3>Users</h3>
-    <div id="users"></div>
+<div id="cartOverlay" class="overlay" onclick="closeCart()"></div>
+<div id="cartDrawer" class="drawer">
+  <div class="drawer-header">
+    <h3>Your Cart</h3>
+    <button class="close-btn" onclick="closeCart()">✕</button>
   </div>
-
-  <!-- SETTINGS -->
-  <div id="settings" style="display:none;">
-    <h3>Settings</h3>
-
-    <button onclick="logout()">Logout</button>
-    <button onclick="toggleTheme()">Theme</button>
-
-    <input id="oldPass" placeholder="Old password">
-    <input id="newPass" placeholder="New password">
-    <button onclick="changePassword()">Change Password</button>
-
-    <button onclick="forgotPassword()">Forgot Password</button>
+  <div id="cartItems" class="cart-items"></div>
+  <div id="cartFooter" class="cart-footer" style="display:none;">
+    <div class="cart-total">
+      <span>Total</span>
+      <span id="cartTotal" class="total-amount">₵0</span>
+    </div>
+    <button class="btn-primary full" onclick="openCheckout()">Proceed to Checkout</button>
   </div>
+  <div id="emptyCart" class="empty-state">
+    <div class="empty-icon">🛒</div>
+    <p>Your cart is empty</p>
+  </div>
+</div>
 
+<div id="checkoutOverlay" class="overlay" onclick="closeCheckout()"></div>
+<div id="checkoutModal" class="modal">
+  <div class="modal-header">
+    <h3>Checkout</h3>
+    <button class="close-btn" onclick="closeCheckout()">✕</button>
+  </div>
+  <div class="modal-body">
+    <input class="field" id="checkoutName" placeholder="Full name"/>
+    <input class="field" id="checkoutLocation" placeholder="Delivery address"/>
+    <input class="field" id="checkoutEmail" placeholder="Email (for confirmation)" type="email"/>
+
+    <div class="payment-options">
+      <p class="field-label">Payment Method</p>
+      <div class="pay-btns">
+        <button class="pay-btn active" onclick="selectPayment(this,'Cash')">💵 Cash</button>
+        <button class="pay-btn" onclick="selectPayment(this,'Paystack')">💳 Card / MoMo</button>
+      </div>
+    </div>
+
+    <div class="order-summary" id="checkoutSummary"></div>
+    <button class="btn-primary full" onclick="placeOrder()">Place Order</button>
+  </div>
+</div>
+
+<div id="settingsOverlay" class="overlay" onclick="closeSettings()"></div>
+<div id="settingsDrawer" class="drawer right">
+  <div class="drawer-header">
+    <h3>Account</h3>
+    <button class="close-btn" onclick="closeSettings()">✕</button>
+  </div>
+  <div class="settings-body">
+    <div class="user-info-card">
+      <div class="user-avatar">👤</div>
+      <div>
+        <p class="user-email" id="settingsEmail"></p>
+        <span class="role-badge" id="settingsRole"></span>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <p class="settings-label">Theme</p>
+      <button class="btn-outline full" onclick="toggleTheme()">🌙 Toggle Dark Mode</button>
+    </div>
+
+    <div class="settings-section">
+      <p class="settings-label">Change Password</p>
+      <input class="field" id="oldPass" type="password" placeholder="Current password"/>
+      <input class="field" id="newPass" type="password" placeholder="New password"/>
+      <button class="btn-primary full" onclick="changePassword()">Update Password</button>
+    </div>
+
+    <div class="settings-section">
+      <button class="btn-danger full" onclick="logout()">Logout</button>
+    </div>
+  </div>
 </div>
 
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script src="script.js"></script>
-
 </body>
 </html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Payment Success — ChopSpot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+  <div class="success-page">
+    <div class="success-card">
+      <div class="success-icon">✅</div>
+      <h1 class="success-title">Payment Successful!</h1>
+      <p class="success-sub">Your order has been confirmed and payment received. Check your email for your order confirmation.</p>
+      <div class="ref-box" id="refBox">Verifying payment...</div>
+      <button class="btn-primary full" onclick="window.location.href='index.html'">Back to Menu</button>
+    </div>
+  </div>
+
+  <script>
+    const API = "https://food-app-backend-mhfp.onrender.com";
+
+    window.onload = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const ref    = params.get("reference") || params.get("trxref");
+
+      if (!ref) {
+        document.getElementById("refBox").textContent = "No payment reference found.";
+        return;
+      }
+
+      document.getElementById("refBox").textContent = `Reference: ${ref}`;
+
+      try {
+        const token = localStorage.getItem("chopspot_token");
+        const res   = await fetch(`${API}/api/paystack/verify/${ref}`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.verified) {
+          document.getElementById("refBox").innerHTML = `✅ Verified<br><small>Ref: ${ref}</small>`;
+        }
+      } catch (err) {
+        console.log("Verify error:", err);
+      }
+    };
+  </script>
+</body>
+</html>

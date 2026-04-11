@@ -1,99 +1,180 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Admin Dashboard</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ChopSpot Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
+<body class="admin-body">
 
-<body>
+<div class="admin-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <span>🍔</span>
+      <span>ChopSpot</span>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="sidebar-btn active" onclick="showTab('overview')" data-tab="overview">
+        📊 Overview
+      </button>
+      <button class="sidebar-btn" onclick="showTab('orders')" data-tab="orders">
+        📦 Orders
+      </button>
+      <button class="sidebar-btn" onclick="showTab('menu')" data-tab="menu">
+        🍔 Menu
+      </button>
+      <button class="sidebar-btn" onclick="showTab('users')" data-tab="users">
+        👥 Users
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <p id="adminEmail" class="admin-user-email"></p>
+      <button class="sidebar-logout" onclick="logout()">Logout</button>
+    </div>
+  </aside>
 
-<h1>📊 Admin Dashboard</h1>
+  <main class="admin-main">
 
-<!-- ORDERS -->
-<div class="card">
-  <h2>📦 Orders</h2>
-  <div id="orders">Loading orders...</div>
+    <div class="admin-topbar">
+      <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+      <h2 id="pageTitle">Overview</h2>
+      <div class="topbar-right">
+        <span class="live-dot"></span>
+        <span class="live-label">Live</span>
+      </div>
+    </div>
+
+    <!-- OVERVIEW TAB -->
+    <div id="tab-overview" class="tab-content active">
+      <div class="stat-grid">
+        <div class="stat-card orange">
+          <div class="stat-icon">💰</div>
+          <div>
+            <p class="stat-label">Total Revenue</p>
+            <h3 class="stat-value" id="statRevenue">—</h3>
+          </div>
+        </div>
+        <div class="stat-card blue">
+          <div class="stat-icon">📦</div>
+          <div>
+            <p class="stat-label">Total Orders</p>
+            <h3 class="stat-value" id="statOrders">—</h3>
+          </div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-icon">👥</div>
+          <div>
+            <p class="stat-label">Users</p>
+            <h3 class="stat-value" id="statUsers">—</h3>
+          </div>
+        </div>
+        <div class="stat-card purple">
+          <div class="stat-icon">🍔</div>
+          <div>
+            <p class="stat-label">Menu Items</p>
+            <h3 class="stat-value" id="statFoods">—</h3>
+          </div>
+        </div>
+      </div>
+
+      <div class="charts-row">
+        <div class="chart-card wide">
+          <h4>Revenue — Last 7 Days</h4>
+          <canvas id="revenueChart"></canvas>
+        </div>
+        <div class="chart-card">
+          <h4>Order Status</h4>
+          <canvas id="statusChart"></canvas>
+        </div>
+      </div>
+
+      <div class="card-block">
+        <h4>🔥 Top Selling Items</h4>
+        <div id="topItems" class="top-items-list"></div>
+      </div>
+    </div>
+
+    <!-- ORDERS TAB -->
+    <div id="tab-orders" class="tab-content">
+      <div class="tab-toolbar">
+        <div class="filter-row">
+          <select class="field-sm" id="orderStatusFilter" onchange="loadOrders()">
+            <option value="">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="processing">Processing</option>
+            <option value="ready">Ready</option>
+            <option value="delivered">Delivered</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+        <button class="btn-primary-sm" onclick="loadOrders()">🔄 Refresh</button>
+      </div>
+      <div id="ordersContainer" class="orders-list">
+        <p class="loading-txt">Loading orders...</p>
+      </div>
+    </div>
+
+    <!-- MENU TAB -->
+    <div id="tab-menu" class="tab-content">
+      <div class="tab-toolbar">
+        <button class="btn-primary-sm" onclick="openAddFood()">+ Add Item</button>
+      </div>
+
+      <div id="foodFormCard" class="form-card" style="display:none;">
+        <h4 id="foodFormTitle">Add Menu Item</h4>
+        <input class="field" id="foodName" placeholder="Item name"/>
+        <input class="field" id="foodPrice" type="number" placeholder="Price (₵)"/>
+        <input class="field" id="foodCategory" placeholder="Category (e.g. Rice, Fast Food)"/>
+        <input class="field" id="foodDescription" placeholder="Description"/>
+        <input class="field" id="foodImage" placeholder="Image URL (optional)"/>
+        <input class="field" id="foodQuantity" type="number" placeholder="Stock quantity"/>
+        <div class="stock-toggle">
+          <label>
+            <input type="checkbox" id="foodInStock" checked/>
+            In Stock
+          </label>
+        </div>
+        <div class="form-btns">
+          <button class="btn-primary-sm" onclick="saveFood()">Save</button>
+          <button class="btn-ghost-sm" onclick="cancelFoodForm()">Cancel</button>
+        </div>
+        <input type="hidden" id="editFoodId"/>
+      </div>
+
+      <div id="menuContainer" class="menu-admin-grid">
+        <p class="loading-txt">Loading menu...</p>
+      </div>
+    </div>
+
+    <!-- USERS TAB -->
+    <div id="tab-users" class="tab-content">
+      <div class="tab-toolbar">
+        <button class="btn-primary-sm" onclick="loadUsers()">🔄 Refresh</button>
+      </div>
+      <div id="usersContainer" class="users-list">
+        <p class="loading-txt">Loading users...</p>
+      </div>
+    </div>
+
+  </main>
 </div>
 
-<!-- USERS -->
-<div class="card">
-  <h2>👤 Registered Users</h2>
-  <div id="users">Loading users...</div>
+<div id="toast" class="toast"></div>
+
+<div id="orderDetailOverlay" class="overlay" onclick="closeOrderDetail()"></div>
+<div id="orderDetailModal" class="modal">
+  <div class="modal-header">
+    <h3>Order Details</h3>
+    <button class="close-btn" onclick="closeOrderDetail()">✕</button>
+  </div>
+  <div id="orderDetailBody" class="modal-body"></div>
 </div>
 
-<script>
-const API = "http://10.194.15.54:3000";
-
-/* ================= ORDERS ================= */
-async function loadOrders() {
-  try {
-    const res = await fetch(API + "/api/orders");
-    const data = await res.json();
-
-    const box = document.getElementById("orders");
-    box.innerHTML = "";
-
-    if (data.length === 0) {
-      box.innerHTML = "No orders yet";
-      return;
-    }
-
-    data.forEach(o => {
-      box.innerHTML += `
-        <div class="card">
-          <b>👤 ${o.customerName}</b><br>
-          📍 ${o.location}<br>
-          💳 ${o.paymentMethod}<br>
-          💰 ₵${o.total}<br>
-          🍔 ${o.items.map(i => i.name).join(", ")}
-        </div>
-      `;
-    });
-
-  } catch (err) {
-    console.log("Orders error:", err);
-  }
-}
-
-/* ================= USERS ================= */
-async function loadUsers() {
-  try {
-    const res = await fetch(API + "/api/users");
-    const data = await res.json();
-
-    const box = document.getElementById("users");
-    box.innerHTML = "";
-
-    if (data.length === 0) {
-      box.innerHTML = "No users yet";
-      return;
-    }
-
-    data.forEach(u => {
-      box.innerHTML += `
-        <div class="card">
-          👤 <b>${u.username}</b><br>
-          🛡 Role: ${u.role}
-        </div>
-      `;
-    });
-
-  } catch (err) {
-    console.log("Users error:", err);
-  }
-}
-
-/* ================= INIT ================= */
-function loadAll() {
-  loadOrders();
-  loadUsers();
-}
-
-loadAll();
-
-/* AUTO REFRESH (LIVE ADMIN PANEL) */
-setInterval(loadAll, 3000);
-</script>
-
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script src="admin.js"></script>
 </body>
 </html>
