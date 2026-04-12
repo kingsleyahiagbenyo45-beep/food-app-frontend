@@ -1056,13 +1056,14 @@ body.dark .sidebar-btn.active { background: #052e16; }
 @media (max-width: 900px) { .charts-row { grid-template-columns: 1fr; } }
 
 @media (max-width: 700px) {
-  .sidebar { transform: translateX(-100%); }
+  .sidebar { transform: translateX(-100%); position: fixed; z-index: 200; }
   .sidebar.open { transform: translateX(0); }
-  .admin-main  { margin-left: 0; }
+  .admin-main  { margin-left: 0 !important; width: 100%; }
   .stat-grid   { grid-template-columns: 1fr 1fr; }
   .order-row   { flex-direction: column; }
   .order-actions { width: 100%; flex-direction: row; }
   .detail-grid { grid-template-columns: 1fr; }
+  .tab-content { padding: 16px; }
 }
 
 @media (max-width: 480px) {

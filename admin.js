@@ -52,6 +52,7 @@ function showTab(tab) {
   document.querySelector(`[data-tab="${tab}"]`).classList.add("active");
   const titles = { overview: "Overview", orders: "Orders", menu: "Menu", users: "Users" };
   document.getElementById("pageTitle").textContent = titles[tab];
+  document.getElementById("sidebar").classList.remove("open");
   if (tab === "overview") loadAnalytics();
   if (tab === "orders")   loadOrders();
   if (tab === "menu")     loadMenu();
