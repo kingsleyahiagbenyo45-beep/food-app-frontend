@@ -96,8 +96,10 @@ function enterApp() {
   document.getElementById("appScreen").style.display = "block";
   document.getElementById("userGreeting").textContent = `Welcome back, ${user.email.split("@")[0]} 👋`;
   document.getElementById("settingsEmail").textContent = user.email;
-  document.getElementById("settingsRole").textContent  = user.role.toUpperCase();
-  if (user.role === "admin") {
+  document.getElementById("settingsRole").textContent  = user.role.toUpperCase();  
+if (user.username) document.getElementById("profileUsername").value = user.username;
+  if (user.phone)    document.getElementById("profilePhone").value    = user.phone;
+if (user.role === "admin") {
     document.getElementById("adminNavBtn").style.display = "flex";
   }
   loadFoods();
@@ -279,6 +281,7 @@ async function placeOrder() {
   const name     = document.getElementById("checkoutName").value.trim();
   const location = document.getElementById("checkoutLocation").value.trim();
   const email    = document.getElementById("checkoutEmail").value.trim();
+const phone    = document.getElementById("checkoutPhone").value.trim();
   if (!name || !location) { showToast("Fill name and address", "error"); return; }
   if (!cart.length)       { showToast("Your cart is empty", "error"); return; }
   const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
@@ -289,6 +292,7 @@ async function placeOrder() {
       body: JSON.stringify({
         customerName: name,
         customerEmail: email,
+	customerPhone: phone,
         location,
         paymentMethod: selectedPayment,
         items: cart.flatMap(i => Array(i.qty).fill({ id: i.id, name: i.name, price: i.price })),
@@ -379,6 +383,70 @@ async function forgotPassword() {
     showAuthMsg("Temporary password sent to your email ✅", "success");
   } catch (err) {
     showAuthMsg("Error sending email");
+  }
+}
+
+// =========================
+// 📍 LOCATION DETECTION
+// =========================
+function detectLocation() {
+  const status = document.getElementById("locationStatus");
+  const field  = document.getElementById("checkoutLocation");
+
+  if (!navigator.geolocation) {
+    status.textContent = "Geolocation not supported on this device";
+    return;
+  }
+
+  status.textContent = "📍 Detecting your location...";
+
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      const { latitude, longitude } = pos.coords;
+      try {
+        const res  = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
+        const data = await res.json();
+        const address = data.display_name || `${latitude}, ${longitude}`;
+        field.value    = address;
+        status.textContent = "✅ Location detected";
+        status.style.color = "var(--green)";
+      } catch (err) {
+        field.value    = `${latitude}, ${longitude}`;
+        status.textContent = "✅ Coordinates detected";
+        status.style.color = "var(--green)";
+      }
+    },
+    (err) => {
+      status.textContent = "❌ Could not detect location — please type manually";
+      status.style.color = "var(--red)";
+    }
+  );
+}
+
+// =========================
+// 👤 UPDATE PROFILE
+// =========================
+async function updateProfile() {
+  const username = document.getElementById("profileUsername").value.trim();
+  const phone    = document.getElementById("profilePhone").value.trim();
+
+  try {
+    const res  = await fetch(`${API}/api/update-profile`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({ username, phone })
+    });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.message || "Failed", "error"); return; }
+
+    const user = getUser();
+    user.username = username;
+    user.phone    = phone;
+    localStorage.setItem("chopspot_user", JSON.stringify(user));
+
+    showToast("Profile updated ✅");
+  } catch (err) {
+    showToast("Error updating profile", "error");
   }
 }
 

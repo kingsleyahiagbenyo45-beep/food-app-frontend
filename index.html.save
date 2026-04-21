@@ -118,7 +118,7 @@
   </div>
   <div class="modal-body">
     <input class="field" id="checkoutName" placeholder="Full name"/>
-    <div style="display:flex;gap:8px;">
+<div style="display:flex;gap:8px;">
   <input class="field" id="checkoutLocation" placeholder="Delivery address" style="flex:1;margin-bottom:0;"/>
   <button class="btn-primary" onclick="detectLocation()" style="width:auto;padding:12px;margin-top:0;" title="Detect location">📍</button>
 </div>
@@ -161,13 +161,7 @@
 
     <div class="settings-section">
       <p class="settings-label">Change Password</p>
-<div class="settings-section">
-  <p class="settings-label">Profile</p>
-  <input class="field" id="profileUsername" placeholder="Username"/>
-  <input class="field" id="profilePhone" placeholder="Phone number" type="tel"/>
-  <button class="btn-primary full" onclick="updateProfile()">Save Profile</button>
-</div>      
-<input class="field" id="oldPass" type="password" placeholder="Current password"/>
+      <input class="field" id="oldPass" type="password" placeholder="Current password"/>
       <input class="field" id="newPass" type="password" placeholder="New password"/>
       <button class="btn-primary full" onclick="changePassword()">Update Password</button>
     </div>
